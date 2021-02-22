@@ -1,4 +1,4 @@
-package com.example.springplainwebsocket;
+package griezma.springwebsocket;
 
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
@@ -16,10 +16,10 @@ import org.springframework.web.socket.server.support.HttpSessionHandshakeInterce
 
 
 @SpringBootApplication
-public class SpringWebsocketTests {
+public class SpringWebsocketApplication {
 
     public static void main(String[] args) {
-        SpringApplication.run(SpringWebsocketTests.class, args);
+        SpringApplication.run(SpringWebsocketApplication.class, args);
     }
 
 }
