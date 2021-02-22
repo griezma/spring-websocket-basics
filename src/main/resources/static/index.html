@@ -1,0 +1,124 @@
+<html xmlns="http://www.w3.org/1999/html">
+<head>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/sockjs-client/1.5.0/sockjs.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/stomp.js/2.3.3/stomp.min.js"></script>
+</head>
+<body>
+
+<h1>Websocket</h1>
+
+<section>
+    <h2>Plain Websocket</h2>
+    <div id="wsStatus">Not connected</div>
+    <form id="wsForm">
+        <label>Send:</label>
+        <input type="text" placeholder="Your message?" />
+        <button type="submit">Send</button>
+    </form>
+    <div>
+        Message: <label id="wsMessage">No message yet</label>
+    </div>
+</section>
+
+
+<section>
+    <h2>Websocket over Sockjs</h2>
+    <div id="sockjsStatus">Not connected</div>
+    <form id="sockjsForm">
+        <label>Send:</label>
+        <input type="text" placeholder="Your message?" />
+        <button type="submit">Send</button>
+    </form>
+    <div>
+        Message: <label id="sockjsMessage">No message yet</label>
+    </div>
+</section>
+
+<section>
+    <h2>Websocket over Stomp</h2>
+    <div id="stompStatus">Not connected</div>
+    <form id="stompForm">
+        <label for="message">Send:</label>
+        <input id="message" type="text" placeholder="Your message?" />
+        <button name="stomp" type="submit">Send over Stomp</button>
+        <button name="post" type="submit">Send post</button>
+    </form>
+    <div>
+        Message: <label id="stompMessage">No message yet</label>
+    </div>
+</section>
+
+<script>
+    // plain ws
+    const ws = new WebSocket("ws://localhost:8080/hello-plain")
+    ws.onopen = () => {
+        console.log("Connected plain ws");
+        updateUI("wsStatus", "Connected plain Websocket");
+        ws.send("plain websocket");
+    };
+    ws.onmessage = message => {
+        console.log("Got Message (plain ws):", {message});
+        updateUI("wsMessage", message.data);
+    }
+
+    document.getElementById("wsForm").onsubmit = ev => {
+        const input = ev.target.querySelector("input");
+        console.log("***Send ws message: ", input.value);
+        ws.send(input.value);
+        input.value = "";
+        return false;
+    }
+
+    // sockjs
+    const sock = new SockJS("http://localhost:8080/hello");
+    sock.onopen = () => {
+        console.log("Connected");
+        updateUI("sockjsStatus", "Connected via SockJS");
+        sock.send("sockjs");
+    };
+    sock.onmessage = message => {
+        console.log("Got message:", {message});
+        updateUI("sockjsMessage", message.data);
+    }
+    document.getElementById("sockjsForm").onsubmit = ev => {
+        const input = ev.target.querySelector("input");
+        console.log("***Send sockjs message: ", input.value);
+        sock.send(input.value);
+        input.value = "";
+        return false;
+    }
+
+    // stomp
+    const stomp = Stomp.over(new SockJS("http://localhost:8080/ws-stomp"));
+    stomp.connect({}, frame => {
+        console.log("Stomp connected", {frame});
+        document.getElementById("stompStatus").innerText = "Connected over Stomp";
+
+        stomp.subscribe("/topic/greeting", message => {
+            console.log("Stomp message", {message});
+            updateUI("stompMessage", JSON.parse(message.body).content);
+        })
+    })
+
+    function updateUI(elementId, text) {
+        document.getElementById(elementId).innerText = text;
+    }
+
+    document.getElementById("stompForm").onsubmit = ev => {
+        const input = ev.target.querySelector("input");
+        console.log("***Send message: ", input.value, {submitter: ev.submitter.name});
+        if ("post" === ev.submitter.name) {
+            console.log("Using rest: " + input.value);
+            const message = {name: input.value};
+            const headers = {"Content-Type": "application/json"};
+            fetch("/api/hello", {method: "POST", headers, body: JSON.stringify(message)});
+        } else {
+            stomp.send("/messaging/hello", {}, JSON.stringify({name: input.value}));
+        }
+        input.value = "";
+        updateUI("stompMessage", "Wait for it...");
+        return false;
+    }
+</script>
+</body>
+</html>

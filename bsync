@@ -1,0 +1,2 @@
+# Run on Windows gitbash not WSL, watcher does not work in Windows fs
+browser-sync http://localhost:8080 src/main/resources/static --ws -w
